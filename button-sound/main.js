@@ -148,19 +148,34 @@ function onWindowResize() {
 }
 
 function getIntersections(hand) {
+    // 人差し指の先端と親指の先端の両方をチェック
     const indexTip = hand.joints["index-finger-tip"];
-    if (!indexTip) return [];
+    const thumbTip = hand.joints["thumb-tip"];
 
-    const position = new THREE.Vector3();
-    indexTip.getWorldPosition(position);
+    if (!indexTip || !thumbTip) return [];
 
-    // 球体との距離を計算
+    const indexPosition = new THREE.Vector3();
+    const thumbPosition = new THREE.Vector3();
+    indexTip.getWorldPosition(indexPosition);
+    thumbTip.getWorldPosition(thumbPosition);
+
+    // 人差し指と親指の中点を計算
+    const pinchPosition = new THREE.Vector3()
+        .addVectors(indexPosition, thumbPosition)
+        .multiplyScalar(0.5);
+
+    // ボタンの位置を取得
     const buttonPosition = new THREE.Vector3();
     button.getWorldPosition(buttonPosition);
-    const distance = position.distanceTo(buttonPosition);
 
-    // 球体の半径（0.1m）と余裕を持たせた距離（0.15m）で判定
-    if (distance < 0.15) {
+    // ピンチ位置とボタンの距離を計算
+    const distance = pinchPosition.distanceTo(buttonPosition);
+
+    // デバッグ用のログ
+    console.log("Distance to button:", distance);
+
+    // 判定距離を広げる（0.2m）
+    if (distance < 0.2) {
         return [
             {
                 object: button,
@@ -181,14 +196,14 @@ function onPinchStart() {
         const object = intersection.object;
 
         if (object === button) {
+            console.log("Button pressed!"); // デバッグ用のログ
             button.material.color.setHex(0xff0000);
             button.material.emissive.setHex(0xff0000);
-            button.material.emissiveIntensity = 0.8; // 発光強度をさらに上げる
+            button.material.emissiveIntensity = 0.8;
             button.scale.set(0.9, 0.9, 0.9);
 
-            // 音声再生の処理を改善
             if (audio && audio.buffer) {
-                audio.stop(); // 前の再生を停止
+                audio.stop();
                 audio.play();
                 console.log("音声を再生します");
             } else {
