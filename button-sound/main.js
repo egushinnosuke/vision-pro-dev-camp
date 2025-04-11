@@ -237,10 +237,10 @@ function render() {
             const bar = bars[i];
 
             // 高さを更新（より大きな変化を付ける）
-            const minHeight = 0.02; // 最小高さをさらに小さく
-            const maxHeight = 0.4; // 最大高さをさらに大きく
+            const minHeight = 0.01; // 最小高さをさらに小さく
+            const maxHeight = 0.5; // 最大高さをさらに大きく
             const heightScale =
-                minHeight + Math.pow(value, 2) * (maxHeight - minHeight); // 二乗して変化を強調
+                minHeight + Math.pow(value, 3) * (maxHeight - minHeight); // 三乗して変化をさらに強調
             bar.scale.y = heightScale;
 
             // 色は固定（発光効果は維持）
