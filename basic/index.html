@@ -25,7 +25,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { VRButton } from 'three/addons/webxr/VRButton.js';
-        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -49,21 +48,11 @@
         cube.position.set(0, 1.6, -2);
         scene.add(cube);
 
-        // コントローラー
-        const controllerModelFactory = new XRControllerModelFactory();
-        const controller1 = renderer.xr.getController(0);
-        const controller2 = renderer.xr.getController(1);
-        scene.add(controller1);
-        scene.add(controller2);
-
-        // コントローラーモデル
-        const controllerGrip1 = renderer.xr.getControllerGrip(0);
-        const controllerGrip2 = renderer.xr.getControllerGrip(1);
-        scene.add(controllerGrip1);
-        scene.add(controllerGrip2);
-
-        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
-        controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+        // ハンドトラッキング
+        const hand1 = renderer.xr.getHand(0);
+        const hand2 = renderer.xr.getHand(1);
+        scene.add(hand1);
+        scene.add(hand2);
 
         // レイキャスター
         const raycaster = new THREE.Raycaster();
@@ -84,26 +73,40 @@
             cube.material.color.setHex(getRandomColor());
         }
 
-        // コントローラーのイベント処理
-        controller1.addEventListener('selectstart', () => {
-            const intersects = checkIntersection(
-                controller1.position,
-                new THREE.Vector3(0, 0, -1).applyQuaternion(controller1.quaternion)
-            );
-            if (intersects.length > 0) {
-                changeColor();
+        // ハンドトラッキングの更新処理
+        function updateHandTracking() {
+            // 左手の人差し指
+            if (hand1.joints) {
+                const indexTip = hand1.joints['index-finger-tip'];
+                const indexDistal = hand1.joints['index-finger-distal'];
+                if (indexTip && indexDistal) {
+                    const position = new THREE.Vector3().copy(indexTip.position);
+                    const direction = new THREE.Vector3()
+                        .subVectors(indexTip.position, indexDistal.position)
+                        .normalize();
+                    const intersects = checkIntersection(position, direction);
+                    if (intersects.length > 0) {
+                        changeColor();
+                    }
+                }
             }
-        });
 
-        controller2.addEventListener('selectstart', () => {
-            const intersects = checkIntersection(
-                controller2.position,
-                new THREE.Vector3(0, 0, -1).applyQuaternion(controller2.quaternion)
-            );
-            if (intersects.length > 0) {
-                changeColor();
+            // 右手の人差し指
+            if (hand2.joints) {
+                const indexTip = hand2.joints['index-finger-tip'];
+                const indexDistal = hand2.joints['index-finger-distal'];
+                if (indexTip && indexDistal) {
+                    const position = new THREE.Vector3().copy(indexTip.position);
+                    const direction = new THREE.Vector3()
+                        .subVectors(indexTip.position, indexDistal.position)
+                        .normalize();
+                    const intersects = checkIntersection(position, direction);
+                    if (intersects.length > 0) {
+                        changeColor();
+                    }
+                }
             }
-        });
+        }
 
         // コントロール（VRモード外で操作できるように）
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -112,6 +115,7 @@
             renderer.setAnimationLoop(() => {
                 cube.rotation.y += 0.01;
                 controls.update();
+                updateHandTracking();
                 renderer.render(scene, camera);
             });
         }
