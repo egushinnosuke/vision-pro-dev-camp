@@ -6,6 +6,10 @@ let camera, scene, renderer;
 let hand1, hand2;
 let button;
 let audio;
+let analyser;
+let dataArray;
+let visualizerGroup;
+let bars = [];
 
 init();
 animate();
@@ -57,7 +61,7 @@ function init() {
         emissiveIntensity: 0.2,
     });
     button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-    button.position.set(0, 1.4, -0.3);
+    button.position.set(0, 1.2, -0.3);
     scene.add(button);
 
     // ボタンの枠を追加
@@ -84,8 +88,12 @@ function init() {
         "button-sound.mp3",
         function (buffer) {
             audio.setBuffer(buffer);
-            audio.setVolume(1.0); // 音量を最大に
+            audio.setVolume(1.0);
             console.log("音声ファイルの読み込みが完了しました");
+
+            // アナライザーの設定
+            analyser = new THREE.AudioAnalyser(audio, 32);
+            dataArray = new Uint8Array(analyser.analyser.frequencyBinCount);
         },
         function (xhr) {
             console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
@@ -94,6 +102,32 @@ function init() {
             console.error("音声ファイルの読み込みに失敗しました:", error);
         }
     );
+
+    // ビジュアライザーの作成
+    visualizerGroup = new THREE.Group();
+    visualizerGroup.position.set(0, 1.2, -0.8); // ボタンの後ろに配置
+    scene.add(visualizerGroup);
+
+    // 周波数バーの作成
+    const barCount = 32;
+    const barWidth = 0.02;
+    const barSpacing = 0.01;
+    const totalWidth = barCount * (barWidth + barSpacing);
+
+    for (let i = 0; i < barCount; i++) {
+        const barGeometry = new THREE.BoxGeometry(barWidth, 0.1, 0.1);
+        const barMaterial = new THREE.MeshPhongMaterial({
+            color: 0x00ff00,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.2,
+        });
+        const bar = new THREE.Mesh(barGeometry, barMaterial);
+
+        // バーを横一列に配置
+        bar.position.x = i * (barWidth + barSpacing) - totalWidth / 2;
+        visualizerGroup.add(bar);
+        bars.push(bar);
+    }
 
     // VRボタンの追加
     document.body.appendChild(VRButton.createButton(renderer));
@@ -160,5 +194,25 @@ function animate() {
 }
 
 function render() {
+    if (analyser && audio.isPlaying) {
+        analyser.getFrequencyData(dataArray);
+
+        // 各バーの高さと色を更新
+        for (let i = 0; i < bars.length; i++) {
+            const value = dataArray[i] / 255; // 0-1の範囲に正規化
+            const bar = bars[i];
+
+            // 高さを更新
+            bar.scale.y = 0.1 + value * 0.5; // 最小高さ0.1、最大高さ0.6
+
+            // 色を更新（低周波から高周波へ：青→緑→赤）
+            const hue = i / bars.length;
+            const color = new THREE.Color().setHSL(hue, 1, 0.5 + value * 0.5);
+            bar.material.color.copy(color);
+            bar.material.emissive.copy(color);
+            bar.material.emissiveIntensity = 0.2 + value * 0.3;
+        }
+    }
+
     renderer.render(scene, camera);
 }
