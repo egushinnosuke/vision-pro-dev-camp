@@ -147,6 +147,31 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function getIntersections(hand) {
+    const indexTip = hand.joints["index-finger-tip"];
+    if (!indexTip) return [];
+
+    const position = new THREE.Vector3();
+    indexTip.getWorldPosition(position);
+
+    // 球体との距離を計算
+    const buttonPosition = new THREE.Vector3();
+    button.getWorldPosition(buttonPosition);
+    const distance = position.distanceTo(buttonPosition);
+
+    // 球体の半径（0.1m）と余裕を持たせた距離（0.15m）で判定
+    if (distance < 0.15) {
+        return [
+            {
+                object: button,
+                distance: distance,
+            },
+        ];
+    }
+
+    return [];
+}
+
 function onPinchStart() {
     const hand = this;
     const intersections = getIntersections(hand);
@@ -158,7 +183,7 @@ function onPinchStart() {
         if (object === button) {
             button.material.color.setHex(0xff0000);
             button.material.emissive.setHex(0xff0000);
-            button.material.emissiveIntensity = 0.5;
+            button.material.emissiveIntensity = 0.8; // 発光強度をさらに上げる
             button.scale.set(0.9, 0.9, 0.9);
 
             // 音声再生の処理を改善
@@ -176,23 +201,8 @@ function onPinchStart() {
 function onPinchEnd() {
     button.material.color.setHex(0x00ff00);
     button.material.emissive.setHex(0x00ff00);
-    button.material.emissiveIntensity = 0.2;
+    button.material.emissiveIntensity = 0.5; // 通常時の発光強度も上げる
     button.scale.set(1, 1, 1);
-}
-
-function getIntersections(hand) {
-    const indexTip = hand.joints["index-finger-tip"];
-    if (!indexTip) return [];
-
-    const position = new THREE.Vector3();
-    indexTip.getWorldPosition(position);
-
-    const direction = new THREE.Vector3();
-    indexTip.getWorldDirection(direction);
-
-    const raycaster = new THREE.Raycaster(position, direction);
-    raycaster.far = 0.2;
-    return raycaster.intersectObjects([button]);
 }
 
 function animate() {
