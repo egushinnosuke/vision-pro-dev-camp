@@ -54,21 +54,24 @@ function init() {
     hand2.add(handModel2);
 
     // ボタンの作成
-    const buttonGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    const buttonGeometry = new THREE.SphereGeometry(0.1, 32, 32); // 半径0.1mの球体
     const buttonMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ff00,
         emissive: 0x00ff00,
-        emissiveIntensity: 0.2,
+        emissiveIntensity: 0.5,
+        shininess: 100, // 光沢を追加
     });
     button = new THREE.Mesh(buttonGeometry, buttonMaterial);
     button.position.set(0, 1.2, -0.3);
     scene.add(button);
 
     // ボタンの枠を追加
-    const buttonFrameGeometry = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+    const buttonFrameGeometry = new THREE.SphereGeometry(0.11, 32, 32); // 少し大きい球体
     const buttonFrameMaterial = new THREE.MeshPhongMaterial({
         color: 0xffffff,
         wireframe: true,
+        transparent: true,
+        opacity: 0.5,
     });
     const buttonFrame = new THREE.Mesh(
         buttonFrameGeometry,
@@ -105,26 +108,29 @@ function init() {
 
     // ビジュアライザーの作成
     visualizerGroup = new THREE.Group();
-    visualizerGroup.position.set(0, 1.2, -0.8); // ボタンの後ろに配置
+    visualizerGroup.position.copy(button.position); // ボタンと同じ位置に配置
     scene.add(visualizerGroup);
 
     // 周波数バーの作成
     const barCount = 32;
     const barWidth = 0.02;
-    const barSpacing = 0.01;
-    const totalWidth = barCount * (barWidth + barSpacing);
+    const barHeight = 0.1;
+    const radius = 0.3; // 円の半径
 
     for (let i = 0; i < barCount; i++) {
-        const barGeometry = new THREE.BoxGeometry(barWidth, 0.1, 0.1);
+        const angle = (i / barCount) * Math.PI * 2; // 円周上の角度
+        const barGeometry = new THREE.BoxGeometry(barWidth, barHeight, 0.1);
         const barMaterial = new THREE.MeshPhongMaterial({
             color: 0x00ff00,
             emissive: 0x00ff00,
-            emissiveIntensity: 0.2,
+            emissiveIntensity: 0.5, // 初期発光強度を上げる
         });
         const bar = new THREE.Mesh(barGeometry, barMaterial);
 
-        // バーを横一列に配置
-        bar.position.x = i * (barWidth + barSpacing) - totalWidth / 2;
+        // バーを円形に配置
+        bar.position.x = Math.cos(angle) * radius;
+        bar.position.z = Math.sin(angle) * radius;
+        bar.rotation.y = -angle; // バーを円の接線方向に向ける
         visualizerGroup.add(bar);
         bars.push(bar);
     }
@@ -210,7 +216,7 @@ function render() {
             const color = new THREE.Color().setHSL(hue, 1, 0.5 + value * 0.5);
             bar.material.color.copy(color);
             bar.material.emissive.copy(color);
-            bar.material.emissiveIntensity = 0.2 + value * 0.3;
+            bar.material.emissiveIntensity = 0.5 + value * 0.5; // 発光強度を強化
         }
     }
 
