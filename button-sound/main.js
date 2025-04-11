@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
+import { XRHandModelFactory } from "three/addons/webxr/XRHandModelFactory.js";
 
 let camera, scene, renderer;
-let controller1, controller2;
+let hand1, hand2;
 let button;
 let audio;
 
@@ -31,23 +31,29 @@ function init() {
     light.position.set(0.5, 1, 0.25);
     scene.add(light);
 
-    // コントローラーの設定
-    const controllerModelFactory = new XRControllerModelFactory();
-    controller1 = renderer.xr.getController(0);
-    controller2 = renderer.xr.getController(1);
-    scene.add(controller1);
-    scene.add(controller2);
+    // ハンドトラッキングの設定
+    const handModelFactory = new XRHandModelFactory();
+    hand1 = renderer.xr.getHand(0);
+    hand2 = renderer.xr.getHand(1);
+    scene.add(hand1);
+    scene.add(hand2);
 
-    controller1.addEventListener("selectstart", onSelectStart);
-    controller1.addEventListener("selectend", onSelectEnd);
-    controller2.addEventListener("selectstart", onSelectStart);
-    controller2.addEventListener("selectend", onSelectEnd);
+    hand1.addEventListener("pinchstart", onPinchStart);
+    hand1.addEventListener("pinchend", onPinchEnd);
+    hand2.addEventListener("pinchstart", onPinchStart);
+    hand2.addEventListener("pinchend", onPinchEnd);
+
+    // ハンドモデルの追加
+    const handModel1 = handModelFactory.createHandModel(hand1, "mesh");
+    const handModel2 = handModelFactory.createHandModel(hand2, "mesh");
+    hand1.add(handModel1);
+    hand2.add(handModel2);
 
     // ボタンの作成
     const buttonGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
     const buttonMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
     button = new THREE.Mesh(buttonGeometry, buttonMaterial);
-    button.position.set(0, 1.6, -0.5);
+    button.position.set(0, 1.4, -0.3);
     scene.add(button);
 
     // 音声の設定
@@ -71,9 +77,9 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function onSelectStart() {
-    const controller = this;
-    const intersections = getIntersections(controller);
+function onPinchStart() {
+    const hand = this;
+    const intersections = getIntersections(hand);
 
     if (intersections.length > 0) {
         const intersection = intersections[0];
@@ -88,17 +94,22 @@ function onSelectStart() {
     }
 }
 
-function onSelectEnd() {
+function onPinchEnd() {
     button.material.color.setHex(0x00ff00);
 }
 
-function getIntersections(controller) {
-    const tempMatrix = new THREE.Matrix4();
-    tempMatrix.identity().extractRotation(controller.matrixWorld);
-    const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(
-        controller.quaternion
-    );
-    const raycaster = new THREE.Raycaster(controller.position, direction);
+function getIntersections(hand) {
+    const indexTip = hand.joints["index-finger-tip"];
+    if (!indexTip) return [];
+
+    const position = new THREE.Vector3();
+    indexTip.getWorldPosition(position);
+
+    const direction = new THREE.Vector3();
+    indexTip.getWorldDirection(direction);
+
+    const raycaster = new THREE.Raycaster(position, direction);
+    raycaster.far = 0.1; // 検出距離を10cmに制限
     return raycaster.intersectObjects([button]);
 }
 
