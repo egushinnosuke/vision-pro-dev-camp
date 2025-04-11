@@ -53,7 +53,13 @@
         scene.add(controller1);
         scene.add(controller2);
 
-        // コントローラーのレイキャスター
+        // ハンドトラッキング
+        const hand1 = renderer.xr.getHand(0);
+        const hand2 = renderer.xr.getHand(1);
+        scene.add(hand1);
+        scene.add(hand2);
+
+        // レイキャスター
         const raycaster = new THREE.Raycaster();
 
         // ランダムな色を生成する関数
@@ -61,25 +67,68 @@
             return Math.random() * 0xffffff;
         }
 
+        // 指先の位置を取得する関数
+        function getFingerTipPosition(hand) {
+            const indexTip = hand.joints['index-finger-tip'];
+            if (indexTip) {
+                return new THREE.Vector3().copy(indexTip.position);
+            }
+            return null;
+        }
+
+        // オブジェクトとの交差判定を行う関数
+        function checkIntersection(position, direction) {
+            raycaster.set(position, direction);
+            return raycaster.intersectObjects([cube]);
+        }
+
+        // 色を変更する関数
+        function changeColor() {
+            cube.material.color.setHex(getRandomColor());
+        }
+
         // コントローラーのイベント処理
         controller1.addEventListener('selectstart', () => {
-            const intersects = getIntersects(controller1);
-            if (intersects.length > 0 && intersects[0].object === cube) {
-                cube.material.color.setHex(getRandomColor());
+            const intersects = checkIntersection(
+                controller1.position,
+                new THREE.Vector3(0, 0, -1).applyQuaternion(controller1.quaternion)
+            );
+            if (intersects.length > 0) {
+                changeColor();
             }
         });
 
         controller2.addEventListener('selectstart', () => {
-            const intersects = getIntersects(controller2);
-            if (intersects.length > 0 && intersects[0].object === cube) {
-                cube.material.color.setHex(getRandomColor());
+            const intersects = checkIntersection(
+                controller2.position,
+                new THREE.Vector3(0, 0, -1).applyQuaternion(controller2.quaternion)
+            );
+            if (intersects.length > 0) {
+                changeColor();
             }
         });
 
-        // レイキャストの交差判定を行う関数
-        function getIntersects(controller) {
-            raycaster.set(controller.position, new THREE.Vector3(0, 0, -1).applyQuaternion(controller.quaternion));
-            return raycaster.intersectObjects([cube]);
+        // ハンドトラッキングの更新処理
+        function updateHandTracking() {
+            // 左手の人差し指
+            const leftTip = getFingerTipPosition(hand1);
+            if (leftTip) {
+                const direction = new THREE.Vector3(0, 0, -1);
+                const intersects = checkIntersection(leftTip, direction);
+                if (intersects.length > 0) {
+                    changeColor();
+                }
+            }
+
+            // 右手の人差し指
+            const rightTip = getFingerTipPosition(hand2);
+            if (rightTip) {
+                const direction = new THREE.Vector3(0, 0, -1);
+                const intersects = checkIntersection(rightTip, direction);
+                if (intersects.length > 0) {
+                    changeColor();
+                }
+            }
         }
 
         // コントロール（VRモード外で操作できるように）
@@ -89,6 +138,7 @@
             renderer.setAnimationLoop(() => {
                 cube.rotation.y += 0.01;
                 controls.update();
+                updateHandTracking();
                 renderer.render(scene, camera);
             });
         }
