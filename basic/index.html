@@ -47,6 +47,41 @@
         const cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
 
+        // コントローラー
+        const controller1 = renderer.xr.getController(0);
+        const controller2 = renderer.xr.getController(1);
+        scene.add(controller1);
+        scene.add(controller2);
+
+        // コントローラーのレイキャスター
+        const raycaster = new THREE.Raycaster();
+
+        // ランダムな色を生成する関数
+        function getRandomColor() {
+            return Math.random() * 0xffffff;
+        }
+
+        // コントローラーのイベント処理
+        controller1.addEventListener('selectstart', () => {
+            const intersects = getIntersects(controller1);
+            if (intersects.length > 0 && intersects[0].object === cube) {
+                cube.material.color.setHex(getRandomColor());
+            }
+        });
+
+        controller2.addEventListener('selectstart', () => {
+            const intersects = getIntersects(controller2);
+            if (intersects.length > 0 && intersects[0].object === cube) {
+                cube.material.color.setHex(getRandomColor());
+            }
+        });
+
+        // レイキャストの交差判定を行う関数
+        function getIntersects(controller) {
+            raycaster.set(controller.position, new THREE.Vector3(0, 0, -1).applyQuaternion(controller.quaternion));
+            return raycaster.intersectObjects([cube]);
+        }
+
         // コントロール（VRモード外で操作できるように）
         const controls = new OrbitControls(camera, renderer.domElement);
 
