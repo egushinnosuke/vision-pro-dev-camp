@@ -237,9 +237,11 @@ function render() {
             const bar = bars[i];
 
             // 高さを更新（より大きな変化を付ける）
-            const minHeight = 0.05; // 最小高さ
-            const maxHeight = 0.3; // 最大高さ
-            bar.scale.y = minHeight + value * (maxHeight - minHeight);
+            const minHeight = 0.02; // 最小高さをさらに小さく
+            const maxHeight = 0.4; // 最大高さをさらに大きく
+            const heightScale =
+                minHeight + Math.pow(value, 2) * (maxHeight - minHeight); // 二乗して変化を強調
+            bar.scale.y = heightScale;
 
             // 色は固定（発光効果は維持）
             const hue = i / bars.length;
@@ -247,6 +249,16 @@ function render() {
             bar.material.color.copy(color);
             bar.material.emissive.copy(color);
             bar.material.emissiveIntensity = 0.5; // 固定の発光強度
+
+            // デバッグ用のログ
+            if (i === 0) {
+                console.log(
+                    "Frequency value:",
+                    value,
+                    "Height scale:",
+                    heightScale
+                );
+            }
         }
     }
 
