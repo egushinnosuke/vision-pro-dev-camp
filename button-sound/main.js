@@ -108,7 +108,9 @@ function init() {
 
     // ビジュアライザーの作成
     visualizerGroup = new THREE.Group();
-    visualizerGroup.position.copy(button.position); // ボタンと同じ位置に配置
+    visualizerGroup.position.copy(button.position);
+    visualizerGroup.position.y -= 0.2; // ボタンより少し下に
+    visualizerGroup.position.z -= 0.2; // ボタンより奥に
     scene.add(visualizerGroup);
 
     // 周波数バーの作成
@@ -123,13 +125,14 @@ function init() {
         const barMaterial = new THREE.MeshPhongMaterial({
             color: 0x00ff00,
             emissive: 0x00ff00,
-            emissiveIntensity: 0.5, // 初期発光強度を上げる
+            emissiveIntensity: 0.5,
         });
         const bar = new THREE.Mesh(barGeometry, barMaterial);
 
-        // バーを円形に配置
+        // バーを反円形に配置（Y軸を反転）
         bar.position.x = Math.cos(angle) * radius;
         bar.position.z = Math.sin(angle) * radius;
+        bar.position.y = -Math.abs(Math.sin(angle)) * 0.1; // 下向きのカーブを作成
         bar.rotation.y = -angle; // バーを円の接線方向に向ける
         visualizerGroup.add(bar);
         bars.push(bar);
@@ -233,15 +236,17 @@ function render() {
             const value = dataArray[i] / 255; // 0-1の範囲に正規化
             const bar = bars[i];
 
-            // 高さを更新
-            bar.scale.y = 0.1 + value * 0.5; // 最小高さ0.1、最大高さ0.6
+            // 高さを更新（より大きな変化を付ける）
+            const minHeight = 0.05; // 最小高さ
+            const maxHeight = 0.3; // 最大高さ
+            bar.scale.y = minHeight + value * (maxHeight - minHeight);
 
-            // 色を更新（低周波から高周波へ：青→緑→赤）
+            // 色は固定（発光効果は維持）
             const hue = i / bars.length;
-            const color = new THREE.Color().setHSL(hue, 1, 0.5 + value * 0.5);
+            const color = new THREE.Color().setHSL(hue, 1, 0.5);
             bar.material.color.copy(color);
             bar.material.emissive.copy(color);
-            bar.material.emissiveIntensity = 0.5 + value * 0.5; // 発光強度を強化
+            bar.material.emissiveIntensity = 0.5; // 固定の発光強度
         }
     }
 
