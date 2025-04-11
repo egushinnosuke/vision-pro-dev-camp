@@ -25,10 +25,11 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { VRButton } from 'three/addons/webxr/VRButton.js';
+        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.6, 5); // カメラの距離を5に変更
+        camera.position.set(0, 1.6, 5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -45,14 +46,24 @@
         const geometry = new THREE.BoxGeometry();
         const material = new THREE.MeshStandardMaterial({ color: 0x0077ff });
         const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(0, 1.6, -2); // 立方体の位置を調整
+        cube.position.set(0, 1.6, -2);
         scene.add(cube);
 
         // コントローラー
+        const controllerModelFactory = new XRControllerModelFactory();
         const controller1 = renderer.xr.getController(0);
         const controller2 = renderer.xr.getController(1);
         scene.add(controller1);
         scene.add(controller2);
+
+        // コントローラーモデル
+        const controllerGrip1 = renderer.xr.getControllerGrip(0);
+        const controllerGrip2 = renderer.xr.getControllerGrip(1);
+        scene.add(controllerGrip1);
+        scene.add(controllerGrip2);
+
+        controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
+        controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
 
         // レイキャスター
         const raycaster = new THREE.Raycaster();
@@ -94,37 +105,6 @@
             }
         });
 
-        // ハンドトラッキングの更新処理
-        function updateHandTracking() {
-            // 左手のコントローラー
-            if (controller1.inputSource && controller1.inputSource.hand) {
-                const hand = controller1.inputSource.hand;
-                const indexTip = hand.get('index-finger-tip');
-                if (indexTip) {
-                    const position = new THREE.Vector3().copy(indexTip.position);
-                    const direction = new THREE.Vector3(0, 0, -1);
-                    const intersects = checkIntersection(position, direction);
-                    if (intersects.length > 0) {
-                        changeColor();
-                    }
-                }
-            }
-
-            // 右手のコントローラー
-            if (controller2.inputSource && controller2.inputSource.hand) {
-                const hand = controller2.inputSource.hand;
-                const indexTip = hand.get('index-finger-tip');
-                if (indexTip) {
-                    const position = new THREE.Vector3().copy(indexTip.position);
-                    const direction = new THREE.Vector3(0, 0, -1);
-                    const intersects = checkIntersection(position, direction);
-                    if (intersects.length > 0) {
-                        changeColor();
-                    }
-                }
-            }
-        }
-
         // コントロール（VRモード外で操作できるように）
         const controls = new OrbitControls(camera, renderer.domElement);
 
@@ -132,7 +112,6 @@
             renderer.setAnimationLoop(() => {
                 cube.rotation.y += 0.01;
                 controls.update();
-                updateHandTracking();
                 renderer.render(scene, camera);
             });
         }
