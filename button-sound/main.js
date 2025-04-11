@@ -78,9 +78,22 @@ function init() {
     camera.add(listener);
     audio = new THREE.Audio(listener);
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load("button-sound.mp3", function (buffer) {
-        audio.setBuffer(buffer);
-    });
+
+    // 音声ファイルの読み込みを確実にする
+    audioLoader.load(
+        "button-sound.mp3",
+        function (buffer) {
+            audio.setBuffer(buffer);
+            audio.setVolume(1.0); // 音量を最大に
+            console.log("音声ファイルの読み込みが完了しました");
+        },
+        function (xhr) {
+            console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+        },
+        function (error) {
+            console.error("音声ファイルの読み込みに失敗しました:", error);
+        }
+    );
 
     // VRボタンの追加
     document.body.appendChild(VRButton.createButton(renderer));
@@ -107,8 +120,14 @@ function onPinchStart() {
             button.material.emissive.setHex(0xff0000);
             button.material.emissiveIntensity = 0.5;
             button.scale.set(0.9, 0.9, 0.9);
-            if (audio && !audio.isPlaying) {
+
+            // 音声再生の処理を改善
+            if (audio && audio.buffer) {
+                audio.stop(); // 前の再生を停止
                 audio.play();
+                console.log("音声を再生します");
+            } else {
+                console.warn("音声バッファが読み込まれていません");
             }
         }
     }
