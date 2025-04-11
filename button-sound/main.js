@@ -50,11 +50,28 @@ function init() {
     hand2.add(handModel2);
 
     // ボタンの作成
-    const buttonGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-    const buttonMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+    const buttonGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    const buttonMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ff00,
+        emissive: 0x00ff00,
+        emissiveIntensity: 0.2,
+    });
     button = new THREE.Mesh(buttonGeometry, buttonMaterial);
     button.position.set(0, 1.4, -0.3);
     scene.add(button);
+
+    // ボタンの枠を追加
+    const buttonFrameGeometry = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+    const buttonFrameMaterial = new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        wireframe: true,
+    });
+    const buttonFrame = new THREE.Mesh(
+        buttonFrameGeometry,
+        buttonFrameMaterial
+    );
+    buttonFrame.position.copy(button.position);
+    scene.add(buttonFrame);
 
     // 音声の設定
     const listener = new THREE.AudioListener();
@@ -87,6 +104,9 @@ function onPinchStart() {
 
         if (object === button) {
             button.material.color.setHex(0xff0000);
+            button.material.emissive.setHex(0xff0000);
+            button.material.emissiveIntensity = 0.5;
+            button.scale.set(0.9, 0.9, 0.9);
             if (audio && !audio.isPlaying) {
                 audio.play();
             }
@@ -96,6 +116,9 @@ function onPinchStart() {
 
 function onPinchEnd() {
     button.material.color.setHex(0x00ff00);
+    button.material.emissive.setHex(0x00ff00);
+    button.material.emissiveIntensity = 0.2;
+    button.scale.set(1, 1, 1);
 }
 
 function getIntersections(hand) {
@@ -109,7 +132,7 @@ function getIntersections(hand) {
     indexTip.getWorldDirection(direction);
 
     const raycaster = new THREE.Raycaster(position, direction);
-    raycaster.far = 0.1; // 検出距離を10cmに制限
+    raycaster.far = 0.2;
     return raycaster.intersectObjects([button]);
 }
 
