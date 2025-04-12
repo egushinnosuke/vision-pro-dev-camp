@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Web Audio API テスト</title>
+</head>
+
+<body>
+    <h1>Web Audio API テスト</h1>
+    <p>このページのコンソールをご確認ください。</p>
+    <button id="start">音声再生開始</button>
+    <script>
+        // ボタンがクリックされたら音声を再生するようにする
+        document.getElementById("start").addEventListener("click", function () {
+            // AudioContext を生成
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // fetch() を用いて音声ファイルを読み込み
+            fetch("music.mp3")
+                .then(res => res.arrayBuffer())
+                .then(arrayBuffer => audioCtx.decodeAudioData(arrayBuffer))
+                .then(decodedData => {
+                    // バッファソースを作成して音声データをセット
+                    const source = audioCtx.createBufferSource();
+                    source.buffer = decodedData;
+
+                    // AnalyserNode を作成して設定
+                    const analyser = audioCtx.createAnalyser();
+                    analyser.fftSize = 256;
+                    const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+                    // 再生のため、接続順は「ソース → AnalyserNode → 出力先」
+                    source.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+
+                    // 音声を再生
+                    source.start(0);
+                    console.log("Start playing raw WebAudio mp3...");
+
+                    // 周波数データを定期的に取得してコンソールに出力
+                    setInterval(() => {
+                        analyser.getByteFrequencyData(frequencyData);
+                        console.log("Frequency array sample:", frequencyData.slice(0, 10)); // 最初の10要素を出力
+                    }, 500);
+                })
+                .catch(err => {
+                    console.error("Error decoding audio data:", err);
+                });
+        });
+    </script>
+</body>
+
+</html>
